@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "slideshow2video"
+version = "0.1.0"
+description = "Build a YouTube-ready slideshow MP4 from a folder of photos and videos"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/yaroslaff/slideshow2video"
+Repository = "https://github.com/yaroslaff/slideshow2video"
+
+[project.scripts]
+slideshow2video = "slideshow2video:main"
+
+[tool.setuptools]
+py-modules = ["slideshow2video"]
