@@ -22,20 +22,20 @@ def is_marker_frame(frame, marker_color=(0, 255, 0), tolerance=15):
     return True
 
 def extract_slides(video_path, output_dir, marker_color=(0, 255, 0)):
-    """Извлекает оригинальные слайды из видео, сохраняя средний кадр каждого фрагмента."""
+    """Extracts original slides from video, saving the clean center frame of each segment."""
     cap = cv2.VideoCapture(str(video_path))
     if not cap.isOpened():
-        raise ValueError(f"Не удалось открыть видеофайл: {video_path}")
+        raise ValueError(f"Could not open video file: {video_path}")
         
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     os.makedirs(output_dir, exist_ok=True)
     
-    print("Проход 1: Поиск границ слайдов на основе маркеров...")
+    print("Pass 1: Searching for slide boundary markers...")
     slide_segments = []
     current_segment = []
     frame_idx = 0
     
-    pbar = tqdm(total=total_frames, desc="Анализ видео")
+    pbar = tqdm(total=total_frames, desc="Analyzing video")
     while True:
         ret, frame = cap.read()
         if not ret:
@@ -57,22 +57,22 @@ def extract_slides(video_path, output_dir, marker_color=(0, 255, 0)):
         
     cap.release()
     
-    # Отсекаем слишком короткие переходы (шум менее 5 кадров)
+    # Prune extra-short transitions (noise under 5 frames)
     valid_segments = [seg for seg in slide_segments if len(seg) >= 5]
     
     if not valid_segments:
-        print("Слайды не обнаружены. Проверьте правильность указания цвета маркера.")
+        print("No slides detected. Please verify your marker color settings.")
         return []
         
-    print(f"Найдено слайдов: {len(valid_segments)}. Извлекаем центральные кадры...")
+    print(f"Found {len(valid_segments)} slides. Extracting clean center frames...")
     
-    # Берем средний кадр сегмента (для исключения артефактов начала/конца анимации)
+    # Grab the middle frame of each segment to avoid transition/blend remnants
     target_frames = {seg[len(seg) // 2]: idx for idx, seg in enumerate(valid_segments)}
     
-    # Проход 2: Извлечение выбранных кадров
+    # Pass 2: Extract selected frames
     cap = cv2.VideoCapture(str(video_path))
     frame_idx = 0
-    pbar = tqdm(total=total_frames, desc="Экспорт изображений")
+    pbar = tqdm(total=total_frames, desc="Exporting images")
     
     saved_paths = []
     while True:
@@ -91,5 +91,5 @@ def extract_slides(video_path, output_dir, marker_color=(0, 255, 0)):
         
     pbar.close()
     cap.release()
-    print(f"Извлечение завершено! Картинки сохранены в '{output_dir}'.")
+    print(f"Extraction completed! Images saved inside: '{output_dir}'.")
     return saved_paths

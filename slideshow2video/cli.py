@@ -6,31 +6,31 @@ from .utils import parse_color
 
 def main():
     parser = argparse.ArgumentParser(
-        description="slideshow2video: Утилита для создания слайдшоу с эффектом Zoom-Pan и возможностью обратного извлечения слайдов."
+        description="slideshow2video: CLI tool to build high-quality slideshow videos with optional zoom-pan effects and reverse-extract slides."
     )
     
-    subparsers = parser.add_subparsers(dest="mode", help="Режим работы")
+    subparsers = parser.add_subparsers(dest="mode", help="Working mode")
     
-    # Режим создания слайдшоу (create)
-    create_parser = subparsers.add_parser("create", help="Создать видео из картинок")
-    create_parser.add_argument("inputs", nargs="+", help="Пути к изображениям или директориям с ними")
-    create_parser.add_argument("-o", "--output", required=True, help="Путь для сохранения готового MP4 файла")
-    create_parser.add_argument("-a", "--audio", nargs="*", help="Пути к аудиофайлам или папкам с аудио (MP3, OGG, WAV)")
-    create_parser.add_argument("-d", "--duration", type=float, default=5.0, help="Длительность показа каждого слайда в сек (по умолчанию: 5.0)")
-    create_parser.add_argument("--fps", type=int, default=30, help="FPS выходного видео (по умолчанию: 30)")
-    create_parser.add_argument("-r", "--resolution", default="1920x1080", help="Разрешение видео в формате WxH (по умолчанию: 1920x1080)")
-    create_parser.add_argument("--zoom", action="store_true", help="Включить анимацию приближения (Zoom-Pan) с эффектом Ken Burns")
-    create_parser.add_argument("--zoom-speed", type=float, default=1.15, help="Максимальный коэффициент приближения при активном зуме (по умолчанию: 1.15)")
+    # Slideshow Creation Mode (create)
+    create_parser = subparsers.add_parser("create", help="Create a slideshow video from images")
+    create_parser.add_argument("inputs", nargs="+", help="File paths of images or directories containing them")
+    create_parser.add_argument("-o", "--output", required=True, help="Output path for the finished MP4 video file")
+    create_parser.add_argument("-a", "--audio", nargs="*", help="File paths or directories containing music tracks (MP3, OGG, WAV, M4A)")
+    create_parser.add_argument("-d", "--duration", type=float, default=5.0, help="Display duration of each slide in seconds (default: 5.0)")
+    create_parser.add_argument("--fps", type=int, default=30, help="Framerate of the output video (default: 30)")
+    create_parser.add_argument("-r", "--resolution", default="1920x1080", help="Video resolution. Accepts aliases (4k, 2k, 1080p, 720p, shorts) or standard WxH format (default: 1920x1080)")
+    create_parser.add_argument("--zoom", action="store_true", help="Enable smooth Ken Burns diagonal zoom-pan animation effect")
+    create_parser.add_argument("--zoom-speed", type=float, default=1.15, help="Maximum zoom scale factor when zoom is active (default: 1.15)")
     create_parser.add_argument("--marker-color", default="green", type=parse_color, 
-                               help="Цвет маркера-разделителя между слайдами: green, magenta, black, blue, red или 'R,G,B' (по умолчанию: green)")
-    create_parser.add_argument("--marker-duration", type=int, default=3, help="Количество маркерных кадров между слайдами (по умолчанию: 3)")
+                               help="Color of marker separators injected between slides: green, magenta, black, blue, red or 'R,G,B' (default: green)")
+    create_parser.add_argument("--marker-duration", type=int, default=3, help="Number of blank marker frames injected between slides (default: 3)")
     
-    # Режим извлечения картинок (extract)
-    extract_parser = subparsers.add_parser("extract", help="Извлечь картинки из готового видео")
-    extract_parser.add_argument("-i", "--input", required=True, help="Путь к исходному MP4 видео")
-    extract_parser.add_argument("-o", "--output-dir", required=True, help="Директория для сохранения извлеченных слайдов")
+    # Reverse Extraction Mode (extract)
+    extract_parser = subparsers.add_parser("extract", help="Extract static slide images back from a video")
+    extract_parser.add_argument("-i", "--input", required=True, help="Input slideshow MP4 video file path")
+    extract_parser.add_argument("-o", "--output-dir", required=True, help="Output directory folder to save the extracted slides")
     extract_parser.add_argument("--marker-color", default="green", type=parse_color, 
-                               help="Цвет используемого при создании маркера: green, magenta, black, blue, red или 'R,G,B' (по умолчанию: green)")
+                               help="Marker separator color to identify boundaries: green, magenta, black, blue, red or 'R,G,B' (default: green)")
     
     args = parser.parse_args()
     
@@ -41,7 +41,7 @@ def main():
     if args.mode == "create":
         images = collect_images(args.inputs)
         if not images:
-            print("Ошибка: Не найдено поддерживаемых изображений.")
+            print("Error: No supported images found in input files.")
             sys.exit(1)
             
         audios = collect_audios(args.audio) if args.audio else []
@@ -61,7 +61,7 @@ def main():
         try:
             width, height = map(int, res_str.lower().split("x"))
         except ValueError:
-            print(f"Ошибка: Разрешение '{args.resolution}' должно быть алиасом (4k, 2k, 1080p, 720p, shorts) или в формате 'ширинаxвысота' (например, 1920x1080).")
+            print(f"Error: Resolution '{args.resolution}' must be a supported alias (4k, 2k, 1080p, 720p, shorts) or in WxH format (e.g., 1920x1080).")
             sys.exit(1)
             
         try:
@@ -78,7 +78,7 @@ def main():
                 audio_files=audios
             )
         except Exception as e:
-            print(f"Ошибка при генерации слайдшоу: {e}")
+            print(f"Error compiling slideshow: {e}")
             sys.exit(1)
             
     elif args.mode == "extract":
@@ -89,7 +89,7 @@ def main():
                 marker_color=args.marker_color
             )
         except Exception as e:
-            print(f"Ошибка при извлечении слайдов: {e}")
+            print(f"Error extracting slides: {e}")
             sys.exit(1)
 
 if __name__ == "__main__":

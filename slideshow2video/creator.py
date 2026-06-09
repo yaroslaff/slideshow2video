@@ -140,16 +140,16 @@ def create_slideshow(
     out = cv2.VideoWriter(temp_video_path, fourcc, fps, (width, height))
     frames_per_slide = int(duration * fps)
     
-    print(f"Сборка видеоряда ({len(images)} слайдов, {fps} FPS)...")
-    for img_path in tqdm(images, desc="Рендеринг кадров"):
+    print(f"Building video stream ({len(images)} slides, {fps} FPS)...")
+    for img_path in tqdm(images, desc="Rendering frames"):
         img = cv2.imread(str(img_path))
         if img is None:
-            print(f"\nПредупреждение: Не удалось прочитать изображение {img_path}. Пропускаем.")
+            print(f"\nWarning: Could not read image {img_path}. Skipping.")
             continue
             
         prepared_img = crop_to_fill(img, width, height)
         
-        # Генерация кадров для текущего слайда
+        # Generation of frames for the current slide
         for i in range(frames_per_slide):
             if zoom:
                 progress = i / max(1, frames_per_slide - 1)
@@ -158,7 +158,7 @@ def create_slideshow(
                 frame = prepared_img.copy()
             out.write(frame)
             
-        # Добавление разделительных маркерных кадров (для последующего извлечения)
+        # Add blank marker separator frames (for future extraction)
         if marker_duration_frames > 0:
             marker_frame = np.full((height, width, 3), marker_color, dtype=np.uint8)
             for _ in range(marker_duration_frames):
@@ -166,15 +166,15 @@ def create_slideshow(
                 
     out.release()
     
-    # Наложение аудио (если указано)
+    # Layering audio soundtrack (if provided)
     if audio_files:
-        print("Обработка и наложение аудио...")
+        print("Processing and mixing audio...")
         try:
             mux_audio(temp_video_path, audio_files, output_path)
         except Exception as e:
-            print(f"\nОшибка при наложении звука: {e}")
-            print("Сохраняем видео без аудио.")
-            # Пережмем через ffmpeg перед отдачей чтобы кодек был h264 (для воспроизведения в веб-плеере)
+            print(f"\nError during audio mixing: {e}")
+            print("Saving video without audio.")
+            # Re-encode to libx264/yuv420p via ffmpeg
             try:
                 subprocess.run([
                     "ffmpeg", "-y", "-i", temp_video_path, "-c:v", "libx264", "-pix_fmt", "yuv420p", str(output_path)
@@ -187,7 +187,7 @@ def create_slideshow(
             if os.path.exists(temp_video_path):
                 os.remove(temp_video_path)
     else:
-        # Чтобы видео без аудио проигрывалось в браузере, сожмем его в h264 через ffmpeg если ffmpeg доступен
+        # Re-encode video as h264 for active web support
         try:
             subprocess.run([
                 "ffmpeg", "-y", "-i", temp_video_path, "-c:v", "libx264", "-pix_fmt", "yuv420p", str(output_path)
@@ -200,4 +200,4 @@ def create_slideshow(
             if os.path.exists(temp_video_path):
                 os.remove(temp_video_path)
         
-    print(f"Готово! Видео сохранено в: {output_path}")
+    print(f"Done! Video successfully saved to: {output_path}")

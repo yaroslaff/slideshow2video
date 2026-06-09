@@ -3,17 +3,17 @@ import shutil
 import subprocess
 
 def check_ffmpeg():
-    """Проверяет наличие установленного ffmpeg в системе."""
+    """Checks if ffmpeg is installed on the system."""
     if shutil.which("ffmpeg") is None:
         raise RuntimeError(
-            "Программа 'ffmpeg' не найдена в PATH. Пожалуйста, установите FFmpeg "
-            "для возможности наложения звука."
+            "Command 'ffmpeg' was not found in PATH. Please install FFmpeg "
+            "to support audio soundtrack mixing."
         )
 
 def parse_color(color_str):
     """
-    Парсит цвет из строки. Поддерживает имена цветов или формат R,G,B.
-    Возвращает кортеж в формате BGR (стандарт для OpenCV).
+    Parses color from string. Supports names of colors or R,G,B format.
+    Returns BGR color tuple (standard for OpenCV).
     """
     colors = {
         "green": (0, 255, 0),
@@ -32,7 +32,7 @@ def parse_color(color_str):
                 raise ValueError
         except Exception:
             raise argparse.ArgumentTypeError(
-                "Цвет должен быть названием (green, magenta, black, blue, red) или в формате 'R,G,B'"
+                "Color must be a known color name (green, magenta, black, blue, red) or formatted as an 'R,G,B' string"
             )
     # Возвращаем BGR
     return (rgb[2], rgb[1], rgb[0])
