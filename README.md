@@ -8,11 +8,13 @@ slideshow2video create /path/to/images -o output.mp4 -a /path/to/music_folder -d
 
 # upload to youtube
 # download  (use yt-dlp or just studio.youtube.com)
-slideshow2video extract -i /tmp/9may.mp4 -o /tmp/extracted
+
+# extract images from video
+slideshow2video extract -i /tmp/video_from_youtube.webm -o /tmp/extracted
 ~~~
 
 ## Warning
-Vibe-coded for personal purpose. Do not expect much quality from this project. (I do not like LLM as programmers)
+Vibe-coded for personal purpose. Do not expect much quality from this project. (I do not trust LLM as programmers). But it works for me.
 
 ## Installation
 
@@ -45,18 +47,6 @@ Generate a stunning slideshow video from a directory of images and overlay backg
 ```bash
 slideshow2video create /path/to/images -o output.mp4 -a /path/to/music_folder -d 4.0
 ```
-
-#### Available Arguments:
-- `inputs`: Directory paths or specific image file paths.
-- `-o, --output` (Required): Filepath to save the generated MP4.
-- `-a, --audio`: Filepaths to audios (MP3, OGG, WAV, M4A) or folders containing music tracks.
-- `-d, --duration`: Display duration of each slide in seconds (default: `5.0`).
-- `--fps`: Frame rate of the output video (default: `30`).
-- `-r, --resolution`: Output resolution. Supports resolution aliases (`4k`, `2k`, `1080p`, `720p`, `shorts`) or standard `WxH` format (default: `1920x1080`).
-- `--zoom`: Enable smooth Ken Burns diagonal zoom-pan effect (default: disabled).
-- `--zoom-speed`: Maximum zoom factor index when zoom is enabled (default: `1.15`).
-- `--marker-color`: Marker token separator color (`green`, `magenta`, `black`, `blue`, `red` or custom `R,G,B`) (default: `green`).
-- `--marker-duration`: Number of marker frames injected between slides (default: `3`).
 
 ---
 
