@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "slideshow2video"
-version = "1.0.0"
-description = "Инструмент для создания динамических слайдшоу для YouTube и обратного извлечения слайдов."
+dynamic = ["version"]
+description = "High-performance CLI tool to generate dynamic slideshow videos and reverse-extract clean slide images."
 readme = "README.md"
 requires-python = ">=3.8"
 classifiers = [
@@ -21,3 +21,6 @@ dependencies = [
 
 [project.scripts]
 slideshow2video = "slideshow2video.cli:main"
+
+[tool.setuptools.dynamic]
+version = {attr = "slideshow2video.__version__"}

@@ -27,6 +27,35 @@ def crop_to_fill(img, target_width, target_height):
         
     return cv2.resize(cropped, (target_width, target_height))
 
+def fit_to_box(img, target_width, target_height, bg_color=(0, 0, 0)):
+    """Масштабирует изображение так, чтобы оно полностью поместилось в целевые размеры, и дополняет поля."""
+    h, w = img.shape[:2]
+    target_aspect = target_width / target_height
+    aspect = w / h
+    
+    if aspect > target_aspect:
+        # Изображение шире целевого соотношения -> по ширине вписываем, по высоте поля сверху/снизу
+        new_width = target_width
+        new_height = int(target_width / aspect)
+    else:
+        # Изображение уже целевого соотношения -> по высоте вписываем, по ширине поля слева/справа
+        new_height = target_height
+        new_width = int(target_height * aspect)
+        
+    resized = cv2.resize(img, (new_width, new_height))
+    
+    # Создаем черный холст нужного размера
+    canvas = np.zeros((target_height, target_width, 3), dtype=np.uint8)
+    if bg_color != (0, 0, 0):
+        canvas[:] = bg_color
+        
+    # Размещаем уменьшенное изображение по центру холста
+    start_y = (target_height - new_height) // 2
+    start_x = (target_width - new_width) // 2
+    canvas[start_y:start_y+new_height, start_x:start_x+new_width] = resized
+    
+    return canvas
+
 def get_zoomed_frame(img, progress, max_zoom=1.15):
     """
     Создает эффект динамического приближения (Zoom-Pan) с легким
@@ -49,19 +78,59 @@ def get_zoomed_frame(img, progress, max_zoom=1.15):
     cropped = img[shift_y:shift_y+new_h, shift_x:shift_x+new_w]
     return cv2.resize(cropped, (w, h))
 
-def collect_images(inputs):
-    """Рекурсивно или точечно собирает все поддерживаемые изображения."""
+def collect_images(inputs, sort_by="name", list_file=None):
+    """
+    Рекурсивно или точечно собирает все поддерживаемые изображения.
+    Параметры:
+        inputs: список путей входных файлов/директорий (игнорируется, если задан list_file)
+        sort_by: "name" (по имени файла), "mtime" (по времени изменения) или "none" (сохранять исходный порядок)
+        list_file: путь к текстовому файлу, содержащему список путей к картинкам (один путь на строку)
+    """
     image_extensions = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.webp'}
     collected = []
-    for inp in inputs:
-        p = Path(inp)
-        if p.is_dir():
-            for file in sorted(p.iterdir()):
-                if file.suffix.lower() in image_extensions:
-                    collected.append(file)
-        elif p.is_file():
-            if p.suffix.lower() in image_extensions:
-                collected.append(p)
+    
+    if list_file:
+        p_list = Path(list_file)
+        if not p_list.exists():
+            raise FileNotFoundError(f"Файл списка не найден: {list_file}")
+        with open(p_list, "r", encoding="utf-8") as f:
+            for line in f:
+                line_str = line.strip()
+                if not line_str or line_str.startswith("#"):
+                    continue
+                p_item = Path(line_str)
+                if not p_item.is_absolute():
+                    # Попробуем найти относительно директории файла-списка
+                    sibling_path = p_list.parent / p_item
+                    if sibling_path.exists():
+                        p_item = sibling_path
+                
+                if p_item.exists() and p_item.is_file() and p_item.suffix.lower() in image_extensions:
+                    collected.append(p_item)
+                else:
+                    print(f"Warning: Файл {line_str} из списка не найден или имеет неподдерживаемое расширение.")
+    else:
+        for inp in inputs:
+            p = Path(inp)
+            if p.is_dir():
+                for file in p.iterdir():
+                    if file.suffix.lower() in image_extensions:
+                        collected.append(file)
+            elif p.is_file():
+                if p.suffix.lower() in image_extensions:
+                    collected.append(p)
+                    
+    # Применяем выбранную сортировку к собранным файлам
+    if sort_by == "mtime":
+        try:
+            collected.sort(key=lambda x: x.stat().st_mtime)
+        except Exception as e:
+            print(f"Warning sorting by mtime: {e}. Falling back to default name sort.")
+            collected.sort(key=lambda x: (x.name.lower(), str(x)))
+    elif sort_by == "name":
+        collected.sort(key=lambda x: (x.name.lower(), str(x)))
+    # Если sort_by == "none", у нас сохраняется порядок из inputs или list_file
+         
     return collected
 
 def collect_audios(audio_inputs):
@@ -111,7 +180,7 @@ def mux_audio(video_path, audio_files, output_path):
             "ffmpeg", "-y", "-i", str(video_path),
             "-stream_loop", "-1", "-i", str(audio_to_use),
             "-map", "0:v:0", "-map", "1:a:0",
-            "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", str(output_path)
+            "-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", str(output_path)
         ]
         # Обратите внимание: мы поменяли copy видео на libx264 и yuv420p для 100% совместимости с YouTube и браузерами
         subprocess.run(mux_cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -124,8 +193,6 @@ def create_slideshow(
     resolution=(1920, 1080),
     zoom=False,
     zoom_speed=1.15,
-    marker_color=(0, 255, 0),
-    marker_duration_frames=3,
     audio_files=None
 ):
     """Создает видеофайл из переданных картинок."""
@@ -147,22 +214,19 @@ def create_slideshow(
             print(f"\nWarning: Could not read image {img_path}. Skipping.")
             continue
             
-        prepared_img = crop_to_fill(img, width, height)
+        if zoom:
+            prepared_img = crop_to_fill(img, width, height)
+        else:
+            prepared_img = fit_to_box(img, width, height)
         
         # Generation of frames for the current slide
         for i in range(frames_per_slide):
             if zoom:
                 progress = i / max(1, frames_per_slide - 1)
                 frame = get_zoomed_frame(prepared_img, progress, max_zoom=zoom_speed)
+                out.write(frame)
             else:
-                frame = prepared_img.copy()
-            out.write(frame)
-            
-        # Add blank marker separator frames (for future extraction)
-        if marker_duration_frames > 0:
-            marker_frame = np.full((height, width, 3), marker_color, dtype=np.uint8)
-            for _ in range(marker_duration_frames):
-                out.write(marker_frame)
+                out.write(prepared_img)
                 
     out.release()
     
@@ -177,7 +241,7 @@ def create_slideshow(
             # Re-encode to libx264/yuv420p via ffmpeg
             try:
                 subprocess.run([
-                    "ffmpeg", "-y", "-i", temp_video_path, "-c:v", "libx264", "-pix_fmt", "yuv420p", str(output_path)
+                    "ffmpeg", "-y", "-i", temp_video_path, "-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p", str(output_path)
                 ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             except Exception:
                 if os.path.exists(output_path):
@@ -190,7 +254,7 @@ def create_slideshow(
         # Re-encode video as h264 for active web support
         try:
             subprocess.run([
-                "ffmpeg", "-y", "-i", temp_video_path, "-c:v", "libx264", "-pix_fmt", "yuv420p", str(output_path)
+                "ffmpeg", "-y", "-i", temp_video_path, "-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p", str(output_path)
             ], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         except Exception:
             if os.path.exists(output_path):

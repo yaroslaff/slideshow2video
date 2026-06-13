@@ -1,14 +1,18 @@
 # slideshow2video
 
-A production-ready Python command-line utility to generate high-quality video slideshows (for YouTube, Shorts, etc.) from images with optional soundtrack stacking, and split/extract those slides back from the resulting video with precise frame alignment.
+Store your photos (galleries) on youtube for free! (You can use "unlisted" visibility or even drafts to keep it private)
 
-## Features
+~~~bash
+# create a slideshow (with music!) 
+slideshow2video create /path/to/images -o output.mp4 -a /path/to/music_folder -d 4.0
 
-- **Dynamic Transitions**: Choose to enable smooth Ken Burns zoom-pan effect with custom speeds.
-- **Robust Image Detection (Zero-Leak Splitter)**: Automatically injects solid color marker frames (1 to 5 frames) between slides. The extractor parses the video quickly, detects marker frame borders, and extracts the highest-quality static center frame of each slide segment.
-- **Audio Soundtracks**: Easily add one or multiple background audio tracks, automatically looped and clipped to match the final video length.
-- **Format Formats**: Pre-defined resolution aliases like `4k`, `2k`, `1080p`, `720p`, and vertical styles like `shorts`.
-- **Lossless Slide Splitter**: Re-extract images into pristine `.jpg` files without animations or transitional overlaps.
+# upload to youtube
+# download  (use yt-dlp or just studio.youtube.com)
+slideshow2video extract -i /tmp/9may.mp4 -o /tmp/extracted
+~~~
+
+## Warning
+Vibe-coded for personal purpose. Do not expect much quality from this project. (I do not like LLM as programmers)
 
 ## Installation
 
